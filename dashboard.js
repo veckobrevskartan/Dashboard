@@ -439,85 +439,145 @@
       });
     }
 
-    // Treemap som träd: Allt -> kategori -> land (stabila ids)
-    function drawTreemap(list) {
-      drawSafe("treemapCatCountry", () => {
-        const rootId = "root";
-        const catTotals = countBy(list, e => e.cat);
-        const catCountry = new Map();
+   function drawTreemap(list) {
+  // Nodgraf i rutan "treemapCatCountry": Kategori-noder + land-noder kopplade till kategori
+  drawSafe("treemapCatCountry", () => {
+    const MAX_COUNTRIES_PER_CAT = 18;
 
-        for (const e of list) {
-          const ctry = (e.country || "").toUpperCase();
-          if (!ctry) continue;
-          const key = `${e.cat}|${ctry}`;
-          catCountry.set(key, (catCountry.get(key) || 0) + 1);
-        }
+    // 1) Räkna totals per kategori
+    const catTotals = countBy(list, (e) => e.cat);
 
-        const ids = [rootId];
-        const labels = ["Allt"];
-        const parents = [""];
-        const values = [list.length];
-
-        for (const cat of CAT_KEYS) {
-          const v = catTotals.get(cat) || 0;
-          if (!v) continue;
-
-          const catId = `cat:${cat}`;
-          ids.push(catId);
-          labels.push(`${CATS[cat].emoji} ${CATS[cat].label}`);
-          parents.push(rootId);
-          values.push(v);
-
-          const perCountry = new Map();
-          for (const [k, cnt] of catCountry.entries()) {
-            const [kCat, kCtry] = k.split("|");
-            if (kCat !== cat) continue;
-            perCountry.set(kCtry, (perCountry.get(kCtry) || 0) + cnt);
-          }
-
-          for (const [ctry, cnt] of topN(perCountry, 25)) {
-            ids.push(`cat:${cat}|ctry:${ctry}`);
-            labels.push(ctry);
-            parents.push(catId);
-            values.push(cnt);
-          }
-        }
-
-        Plotly.react("treemapCatCountry", [{
-          type: "treemap",
-          ids, labels, parents, values,
-          branchvalues: "total",
-          hovertemplate: "%{label}: %{value}<extra></extra>"
-        }], {
-          ...BASE,
-          margin: { l: 10, r: 10, t: 10, b: 10 }
-        }, { responsive: true });
-      });
+    // 2) Räkna cat->country
+    const catCountry = new Map(); // "CAT|SE" -> count
+    for (const e of list) {
+      const ctry = (e.country || "").toUpperCase().trim();
+      if (!ctry) continue;
+      const key = `${e.cat}|${ctry}`;
+      catCountry.set(key, (catCountry.get(key) || 0) + 1);
     }
 
-    function drawCumulative(list) {
-      drawSafe("cumulative", () => {
-        const m = new Map();
-        for (const e of list) {
-          if (!e.__dt) continue;
-          const k = ymdUTC(e.__dt);
-          m.set(k, (m.get(k) || 0) + 1);
-        }
-        const x = [...m.keys()].sort();
-        let acc = 0;
-        const y = x.map(d => (acc += m.get(d)));
-
-        Plotly.react("cumulative", [{
-          type: "scatter",
-          mode: "lines",
-          x, y
-        }], {
-          ...BASE,
-          margin: { t: 20, l: 50, r: 10, b: 50 },
-          showlegend: false
-        }, { responsive: true });
-      });
+    // 3) Top-länder per kategori
+    const perCatCountries = new Map(); // cat -> Array<[ctry,count]>
+    for (const cat of CAT_KEYS) {
+      const m = new Map();
+      for (const [k, v] of catCountry.entries()) {
+        const [kCat, kCtry] = k.split("|");
+        if (kCat !== cat) continue;
+        m.set(kCtry, (m.get(kCtry) || 0) + v);
+      }
+      perCatCountries.set(cat, topN(m, MAX_COUNTRIES_PER_CAT));
     }
+
+    // 4) Layout: kategorier i en cirkel, deras länder i mindre ringar runt respektive kategori
+    const nodes = []; // {id,label,x,y,size,color,kind,value,cat?}
+    const links = []; // {x0,y0,x1,y1}
+
+    const R = 1.65; // radie för kategori-cirkel
+    const step = (2 * Math.PI) / CAT_KEYS.length;
+
+    for (let i = 0; i < CAT_KEYS.length; i++) {
+      const cat = CAT_KEYS[i];
+      const total = catTotals.get(cat) || 0;
+      if (!total) continue;
+
+      const a = i * step - Math.PI / 2;
+      const cx = R * Math.cos(a);
+      const cy = R * Math.sin(a);
+
+      // kategori-nod
+      nodes.push({
+        id: `cat:${cat}`,
+        label: `${CATS[cat].emoji} ${cat}`,
+        x: cx,
+        y: cy,
+        size: Math.max(20, Math.min(70, 12 + Math.sqrt(total) * 2.4)),
+        color: CATS[cat].color,
+        kind: "cat",
+        value: total
+      });
+
+      // land-noder runt kategorin
+      const countries = perCatCountries.get(cat) || [];
+      const r2 = 0.62; // liten ring runt kategorin
+      const step2 = countries.length ? (2 * Math.PI) / countries.length : 0;
+
+      for (let j = 0; j < countries.length; j++) {
+        const [ctry, cnt] = countries[j];
+        const a2 = j * step2;
+
+        const x2 = cx + r2 * Math.cos(a2);
+        const y2 = cy + r2 * Math.sin(a2);
+
+        nodes.push({
+          id: `ctry:${cat}:${ctry}`,
+          label: `${ctry} (${cnt})`,
+          x: x2,
+          y: y2,
+          size: Math.max(8, Math.min(26, 6 + Math.sqrt(cnt) * 1.8)),
+          color: CATS[cat].color,
+          kind: "country",
+          value: cnt,
+          cat
+        });
+
+        links.push({ x0: cx, y0: cy, x1: x2, y1: y2 });
+      }
+    }
+
+    // 5) Edge trace (linjer)
+    const edgeX = [];
+    const edgeY = [];
+    for (const L of links) {
+      edgeX.push(L.x0, L.x1, null);
+      edgeY.push(L.y0, L.y1, null);
+    }
+
+    const edges = {
+      type: "scatter",
+      mode: "lines",
+      x: edgeX,
+      y: edgeY,
+      hoverinfo: "skip",
+      line: { width: 1 },
+      opacity: 0.35
+    };
+
+    // 6) Node trace
+    const nodeTrace = {
+      type: "scattergl",
+      mode: "markers+text",
+      x: nodes.map((n) => n.x),
+      y: nodes.map((n) => n.y),
+      text: nodes.map((n) => (n.kind === "cat" ? n.label : "")), // visa text främst för kategorier
+      textposition: "bottom center",
+      hovertext: nodes.map((n) =>
+        n.kind === "cat"
+          ? `${n.label}<br>${CATS[n.id.split(":")[1]]?.label || ""}<br>Antal: ${n.value}`
+          : `${n.label}<br>Kategori: ${n.cat}`
+      ),
+      hoverinfo: "text",
+      marker: {
+        size: nodes.map((n) => n.size),
+        color: nodes.map((n) => n.color),
+        opacity: 0.9,
+        line: { width: 1 }
+      }
+    };
+
+    Plotly.react(
+      "treemapCatCountry",
+      [edges, nodeTrace],
+      {
+        ...BASE,
+        margin: { l: 10, r: 10, t: 10, b: 10 },
+        xaxis: { visible: false },
+        yaxis: { visible: false },
+        showlegend: false
+      },
+      { responsive: true }
+    );
+  });
+}
 
     // ========= 12) Fullscreen-resize =========
     function resizeAll() {
