@@ -20,7 +20,7 @@
   };
   const CAT_KEYS = Object.keys(CATS);
 
-  // ========= Data =========
+  // ========= DATA =========
   const RAW = Array.isArray(window.EVENTS) ? window.EVENTS : [];
   if (!RAW.length) console.error("window.EVENTS saknas eller är tom. Kontrollera events.js");
 
@@ -43,28 +43,36 @@
   const kpiCountries = $("kpiCountries");
   const kpiRange = $("kpiRange");
 
-  // ========= Plotly layout + config =========
+  // ========= Plotly =========
   const BASE = {
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
     font: { family: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif", size: 12 }
   };
 
-  // ✅ Denna gör att du kan zooma i kartor + får modebar + funkar bättre i fullscreen
+  // ✅ gör att zoom fungerar (wheel/trackpad + pinch) och modebar syns
   const PLOTLY_CFG = {
     responsive: true,
     scrollZoom: true,
     displayModeBar: true,
-    doubleClick: "reset"
+    doubleClick: "reset",
+    staticPlot: false
   };
 
-  // ========= State =========
+  function react(id, data, layout) {
+    Plotly.react(id, data, layout, PLOTLY_CFG);
+    // extra: tvinga scrollZoom on även efter react (Plotly kan ibland nolla context)
+    const gd = document.getElementById(id);
+    if (gd && gd._context) gd._context.scrollZoom = true;
+  }
+
+  // ========= STATE =========
   const ACTIVE = {
     cats: new Set(CAT_KEYS),
     q: "",
     from: "",
     to: "",
-    country: null // interaktivt landfilter från nodgraf
+    country: null
   };
 
   // ========= Helpers =========
@@ -123,11 +131,6 @@
       console.error("Chart failed:", id, e);
       try { Plotly.purge(id); } catch {}
     }
-  }
-
-  // convenience wrapper (så vi aldrig glömmer config)
-  function react(id, data, layout) {
-    Plotly.react(id, data, layout, PLOTLY_CFG);
   }
 
   // ========= UI: kategorier =========
@@ -202,7 +205,7 @@
     const out = [];
     for (const e of RAW) {
       const cat = safeCat(e.cat);
-      if (!cat) continue;
+      if (!cat) continue;                 // lås till dina 11
       if (!ACTIVE.cats.has(cat)) continue;
 
       const ctry = (e.country || "").toUpperCase().trim();
@@ -313,10 +316,53 @@
     });
   }
 
-  // Density map (karta) med fallback till histogram2d
-  function drawDensityMapOrHist(list, targetId, radius) {
+  // ✅ ALLTID mapbox-karta (ingen fallback)
+  function drawScatterMap(list) {
     const lats = [];
     const lons = [];
+    const texts = [];
+    const colors = [];
+
+    for (const e of list) {
+      const lat = safeNum(e.lat);
+      const lon = safeNum(e.lng);
+      if (lat == null || lon == null) continue;
+
+      lats.push(lat);
+      lons.push(lon);
+
+      const meta = CATS[e.cat];
+      texts.push(`${meta.emoji} ${meta.label}<br>${e.title || ""}<br>${e.place || ""}<br>${e.date || ""}`);
+      colors.push(meta.color);
+    }
+
+    drawSafe("scatterGeo", () => {
+      react("scatterGeo", [{
+        type: "scattermapbox",
+        lat: lats,
+        lon: lons,
+        mode: "markers",
+        text: texts,
+        hovertemplate: "%{text}<extra></extra>",
+        marker: { size: 7, opacity: 0.85, color: colors }
+      }], {
+        ...BASE,
+        margin: { l: 10, r: 10, t: 10, b: 10 },
+        dragmode: "pan",
+        mapbox: {
+          style: "open-street-map",
+          center: { lat: 20, lon: 0 },
+          zoom: 1
+        }
+      });
+    });
+  }
+
+  // ✅ ALLTID mapbox-karta (densitet)
+  function drawDensityMap(list, targetId, radius) {
+    const lats = [];
+    const lons = [];
+
     for (const e of list) {
       const lat = safeNum(e.lat);
       const lon = safeNum(e.lng);
@@ -325,7 +371,6 @@
       lons.push(lon);
     }
 
-    // försök densitymapbox (karta)
     drawSafe(targetId, () => {
       react(targetId, [{
         type: "densitymapbox",
@@ -337,84 +382,14 @@
       }], {
         ...BASE,
         margin: { l: 10, r: 10, t: 10, b: 10 },
-        mapbox: { style: "open-street-map", center: { lat: 20, lon: 0 }, zoom: 1 }
+        dragmode: "pan",
+        mapbox: {
+          style: "open-street-map",
+          center: { lat: 20, lon: 0 },
+          zoom: 1
+        }
       });
     });
-
-    // fallback om mapbox blockas
-    const el = $(targetId);
-    const ok = el && el.data && el.data[0] && el.data[0].type === "densitymapbox";
-    if (!ok) {
-      drawSafe(targetId, () => {
-        react(targetId, [{
-          type: "histogram2d",
-          x: lons,
-          y: lats
-        }], {
-          ...BASE,
-          margin: { t: 20, l: 50, r: 10, b: 40 },
-          xaxis: { title: "Longitude" },
-          yaxis: { title: "Latitude" }
-        });
-      });
-    }
-  }
-
-  // Scatter map (karta) med fallback till scattergeo
-  function drawScatterMapOrGeo(list) {
-    const lats = [];
-    const lons = [];
-    const texts = [];
-    const colors = [];
-
-    for (const e of list) {
-      const lat = safeNum(e.lat);
-      const lon = safeNum(e.lng);
-      if (lat == null || lon == null) continue;
-      lats.push(lat);
-      lons.push(lon);
-      const meta = CATS[e.cat];
-      texts.push(`${meta.emoji} ${meta.label}<br>${e.title || ""}<br>${e.place || ""}<br>${e.date || ""}`);
-      colors.push(meta.color);
-    }
-
-    // karta
-    drawSafe("scatterGeo", () => {
-      react("scatterGeo", [{
-        type: "scattermapbox",
-        lat: lats,
-        lon: lons,
-        mode: "markers",
-        text: texts,
-        hovertemplate: "%{text}<extra></extra>",
-        marker: { size: 7, opacity: 0.8, color: colors }
-      }], {
-        ...BASE,
-        margin: { l: 10, r: 10, t: 10, b: 10 },
-        mapbox: { style: "open-street-map", center: { lat: 20, lon: 0 }, zoom: 1 }
-      });
-    });
-
-    // fallback
-    const el = $("scatterGeo");
-    const ok = el && el.data && el.data[0] && el.data[0].type === "scattermapbox";
-    if (!ok) {
-      drawSafe("scatterGeo", () => {
-        react("scatterGeo", [{
-          type: "scattergeo",
-          lat: lats,
-          lon: lons,
-          mode: "markers",
-          text: texts,
-          hovertemplate: "%{text}<extra></extra>",
-          marker: { size: 6, opacity: 0.75 }
-        }], {
-          ...BASE,
-          margin: { l: 10, r: 10, t: 10, b: 10 },
-          geo: { showland: true }
-        });
-      });
-    }
   }
 
   function drawBarTopPlaces(list) {
@@ -471,7 +446,7 @@
     });
   }
 
-  // Interaktiv nodgraf (kategori->land)
+  // Nodgraf (interaktiv)
   function drawCatNodeGraph(list) {
     drawSafe("treemapCatCountry", () => {
       const MAX_COUNTRIES_PER_CAT = 18;
@@ -660,7 +635,7 @@
     });
   }
 
-  // ========= Resize / Fullscreen =========
+  // ========= Resize + Fullscreen =========
   function resizeAll() {
     const ids = [
       "pieCats","barCountries","lineTimeline","heatCalendar",
@@ -703,19 +678,19 @@
     const list = getFiltered();
     setKPIs(list);
 
-    // 10 visualiseringar
+    // 10 visualiseringar (2 kartor + 2 densitetkartor)
     drawPieCats(list);
     drawBarCountries(list);
     drawLineTimeline(list);
 
-    drawDensityMapOrHist(list, "heatCalendar", 18);
+    drawDensityMap(list, "heatCalendar", 18);
     drawBarTopPlaces(list);
     drawStackMonthCat(list);
 
     drawCatNodeGraph(list);
 
-    drawScatterMapOrGeo(list);
-    drawDensityMapOrHist(list, "hist2dGeo", 28);
+    drawScatterMap(list);
+    drawDensityMap(list, "hist2dGeo", 28);
 
     drawCumulative(list);
 
