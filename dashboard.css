@@ -7,6 +7,7 @@
   --primary:#1f6feb;
   --shadow: 0 8px 24px rgba(16, 24, 40, 0.08);
   --radius: 14px;
+  --cardHeadH: 56px;
 }
 
 *{ box-sizing:border-box; }
@@ -155,6 +156,7 @@ body{
   justify-content:space-between;
   padding:10px 12px;
   border-bottom:1px solid var(--line);
+  min-height: var(--cardHeadH);
 }
 .card__title{ font-weight:900; font-size:13px; }
 .card__sub{ font-size:11px; color:var(--muted); margin-top:2px; }
@@ -169,9 +171,35 @@ body{
   font-weight:900;
 }
 
+/* Normalhöjd */
 .chart{
   height: 310px;
   width: 100%;
+}
+
+/* ========== Fullscreen: gör så att grafen fyller skärmen ========== */
+.card:fullscreen{
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* håll headern synlig */
+.card:fullscreen .card__head{
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+}
+
+/* grafytan tar resten av höjden */
+.card:fullscreen .chart{
+  height: calc(100vh - var(--cardHeadH));
+  min-height: calc(100vh - var(--cardHeadH));
 }
 
 /* responsive */
