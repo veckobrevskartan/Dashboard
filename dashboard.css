@@ -175,9 +175,10 @@ body{
 .chart{
   height: 310px;
   width: 100%;
+  touch-action: none; /* ✅ viktigt för pinch/trackpad-zoom i mapbox */
 }
 
-/* ========== Fullscreen: gör så att grafen fyller skärmen ========== */
+/* ========== Fullscreen ========== */
 .card:fullscreen{
   position: fixed;
   inset: 0;
@@ -187,16 +188,12 @@ body{
   border-radius: 0;
   box-shadow: none;
 }
-
-/* håll headern synlig */
 .card:fullscreen .card__head{
   position: sticky;
   top: 0;
   background: #fff;
   z-index: 10;
 }
-
-/* grafytan tar resten av höjden */
 .card:fullscreen .chart{
   height: calc(100vh - var(--cardHeadH));
   min-height: calc(100vh - var(--cardHeadH));
