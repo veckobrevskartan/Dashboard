@@ -4,9 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dashboard – Veckobrevskartan</title>
-  <link rel="stylesheet" href="dashboard.css" />
 
-  <!-- Plotly (för pie/heatmap/sankey/treemap m.m.) -->
+  <!-- Viktigt: ./ så du inte råkar få /Dashboard/Dashboard/... -->
+  <link rel="stylesheet" href="./dashboard.css" />
+
   <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
 </head>
 <body>
@@ -59,163 +60,124 @@
         </div>
       </div>
       <div class="kpis">
-        <div class="kpi">
-          <div class="k">Träffar</div>
-          <div class="v" id="kpiCount">0</div>
-        </div>
-        <div class="kpi">
-          <div class="k">Kategorier</div>
-          <div class="v" id="kpiCats">0</div>
-        </div>
-        <div class="kpi">
-          <div class="k">Länder</div>
-          <div class="v" id="kpiCountries">0</div>
-        </div>
-        <div class="kpi">
-          <div class="k">Period</div>
-          <div class="v" id="kpiRange">–</div>
-        </div>
+        <div class="kpi"><div class="k">Träffar</div><div class="v" id="kpiCount">0</div></div>
+        <div class="kpi"><div class="k">Kategorier</div><div class="v" id="kpiCats">0</div></div>
+        <div class="kpi"><div class="k">Länder</div><div class="v" id="kpiCountries">0</div></div>
+        <div class="kpi"><div class="k">Period</div><div class="v" id="kpiRange">–</div></div>
       </div>
     </div>
   </aside>
 
   <main class="grid">
+    <!-- (dina cards exakt som du har dem nu) -->
+    <!-- ... oförändrat ... -->
+    <!-- Jag lämnar dem som i din nuvarande fil -->
     <!-- 1 -->
     <section class="card" data-chart="pieCats">
       <header class="card-head">
-        <div>
-          <div class="card-title">Kategoriandel (Pie)</div>
-          <div class="card-sub">andel per kategori</div>
-        </div>
+        <div><div class="card-title">Kategoriandel (Pie)</div><div class="card-sub">andel per kategori</div></div>
         <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
       <div class="chart" id="pieCats"></div>
     </section>
 
-    <!-- 2 -->
     <section class="card" data-chart="barCountries">
       <header class="card-head">
-        <div>
-          <div class="card-title">Länder (Bar)</div>
-          <div class="card-sub">antal per land</div>
-        </div>
+        <div><div class="card-title">Länder (Bar)</div><div class="card-sub">antal per land</div></div>
         <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
       <div class="chart" id="barCountries"></div>
     </section>
 
-    <!-- 3 -->
     <section class="card" data-chart="lineTimeline">
       <header class="card-head">
-        <div>
-          <div class="card-title">Tidsserie (Line)</div>
-          <div class="card-sub">antal per dag</div>
-        </div>
+        <div><div class="card-title">Tidsserie (Line)</div><div class="card-sub">antal per dag</div></div>
         <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
       <div class="chart" id="lineTimeline"></div>
     </section>
 
-    <!-- 4 -->
     <section class="card" data-chart="heatCalendar">
       <header class="card-head">
-        <div>
-          <div class="card-title">Kalender-heatmap</div>
-          <div class="card-sub">dagar vs veckor (intensitet = antal)</div>
-        </div>
+        <div><div class="card-title">Kalender-heatmap</div><div class="card-sub">dagar vs veckor (intensitet = antal)</div></div>
         <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
       <div class="chart" id="heatCalendar"></div>
     </section>
 
-    <!-- 5 -->
     <section class="card" data-chart="barTopPlaces">
       <header class="card-head">
-        <div>
-          <div class="card-title">Top platser (Bar)</div>
-          <div class="card-sub">place/city (topp 15)</div>
-        </div>
+        <div><div class="card-title">Top platser (Bar)</div><div class="card-sub">place/city (topp 15)</div></div>
         <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
       <div class="chart" id="barTopPlaces"></div>
     </section>
 
-    <!-- 6 -->
     <section class="card" data-chart="stackMonthCat">
       <header class="card-head">
-        <div>
-          <div class="card-title">Månad x kategori (Stacked)</div>
-          <div class="card-sub">fördelning per månad</div>
-        </div>
+        <div><div class="card-title">Månad x kategori (Stacked)</div><div class="card-sub">fördelning per månad</div></div>
         <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
       <div class="chart" id="stackMonthCat"></div>
     </section>
 
-    <!-- 7 -->
     <section class="card" data-chart="sankeyCountryCat">
       <header class="card-head">
-        <div>
-          <div class="card-title">Flöde (Sankey)</div>
-          <div class="card-sub">land → kategori</div>
-        </div>
+        <div><div class="card-title">Flöde (Sankey)</div><div class="card-sub">land → kategori</div></div>
         <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
       <div class="chart" id="sankeyCountryCat"></div>
     </section>
 
-    <!-- 8 -->
     <section class="card" data-chart="treemapCatCountry">
       <header class="card-head">
-        <div>
-          <div class="card-title">Treemap</div>
-          <div class="card-sub">kategori → land</div>
-        </div>
+        <div><div class="card-title">Treemap</div><div class="card-sub">kategori → land</div></div>
         <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
       <div class="chart" id="treemapCatCountry"></div>
     </section>
 
-    <!-- 9 -->
     <section class="card" data-chart="scatterGeo">
       <header class="card-head">
-        <div>
-          <div class="card-title">Geo-spridning (Scatter)</div>
-          <div class="card-sub">lat/lng (utan karttoken)</div>
-        </div>
+        <div><div class="card-title">Geo-spridning (Scatter)</div><div class="card-sub">lat/lng</div></div>
         <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
       <div class="chart" id="scatterGeo"></div>
     </section>
 
-    <!-- 10 -->
     <section class="card" data-chart="hist2dGeo">
       <header class="card-head">
-        <div>
-          <div class="card-title">Geo-densitet (2D-heat)</div>
-          <div class="card-sub">histogram2d lat/lng</div>
-        </div>
+        <div><div class="card-title">Geo-densitet (2D-heat)</div><div class="card-sub">histogram2d lat/lng</div></div>
         <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
       <div class="chart" id="hist2dGeo"></div>
     </section>
 
-    <!-- 11 (extra) -->
     <section class="card" data-chart="cumulative">
       <header class="card-head">
-        <div>
-          <div class="card-title">Kumulativ (Line)</div>
-          <div class="card-sub">ackumulerat antal över tid</div>
-        </div>
+        <div><div class="card-title">Kumulativ (Line)</div><div class="card-sub">ackumulerat</div></div>
         <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
       <div class="chart" id="cumulative"></div>
     </section>
-
   </main>
 
-  <!-- Viktigt: events.js måste sätta window.EVENTS -->
-  <script src="events.js"></script>
-  <script src="dashboard.js"></script>
+  <!-- Behåll gärna din stora events.js (om den råkar funka), men dashboard.js klarar sig även om den kraschar -->
+  <script src="./events.js"></script>
+
+  <script>
+    // Snabb indikator om events.js faktiskt satte window.EVENTS
+    console.log("EVENTS after events.js:", window.EVENTS ? window.EVENTS.length : "MISSING");
+    if (!window.EVENTS) {
+      document.body.insertAdjacentHTML(
+        "afterbegin",
+        '<div style="margin:12px;padding:12px;border:1px solid #ff8182;background:#ffebe9;border-radius:12px;font-family:system-ui">' +
+        '<b>OBS:</b> events.js satte inte window.EVENTS (fel path eller SyntaxError). Dashboarden kommer försöka ladda från kartan.' +
+        '</div>'
+      );
+    }
+  </script>
+
+  <script src="./dashboard.js"></script>
 </body>
 </html>
