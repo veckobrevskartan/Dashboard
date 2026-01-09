@@ -2,182 +2,213 @@
 <html lang="sv">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dashboard – Veckobrevskartan</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard</title>
 
-  <!-- Viktigt: ./ så du inte råkar få /Dashboard/Dashboard/... -->
-  <link rel="stylesheet" href="./dashboard.css" />
+  <link rel="stylesheet" href="./dashboard.css?v=1" />
 
-  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  <!-- Plotly (inkl mapbox traces) -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
+
 <body>
   <header class="topbar">
-    <div class="brand">
+    <div class="topbar__left">
       <div class="title">Dashboard</div>
-      <div class="sub">Veckobrevskartan – filtrera och visualisera händelser</div>
+      <div class="subtitle">Veckobrevskartan – filtrera och visualisera händelser</div>
     </div>
 
-    <div class="filters">
+    <div class="topbar__right">
       <div class="field">
         <label>Datum från</label>
-        <input id="dateFrom" type="date">
+        <input id="dateFrom" type="date" placeholder="åååå-mm-dd" />
       </div>
       <div class="field">
         <label>Datum till</label>
-        <input id="dateTo" type="date">
+        <input id="dateTo" type="date" placeholder="åååå-mm-dd" />
       </div>
-
-      <div class="field grow">
+      <div class="field field--wide">
         <label>Sök</label>
-        <input id="q" type="text" placeholder='Sök i title/place/summary/source…'>
+        <input id="q" type="text" placeholder="Sök i title/place/summary/source..." />
       </div>
 
-      <button id="btnReset" class="btn">Återställ</button>
-      <button id="btnApply" class="btn primary">Uppdatera</button>
+      <button id="btnReset" class="btn btn--ghost">Återställ</button>
+      <button id="btnApply" class="btn btn--primary">Uppdatera</button>
     </div>
   </header>
 
-  <aside class="sidebar">
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="h">Kategorier</div>
-          <div class="p" id="statsLine">–</div>
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="panel">
+        <div class="panel__head">
+          <div class="panel__title">Kategorier</div>
+          <div class="panel__actions">
+            <button id="catsAll" class="btn btn--chip">Alla</button>
+            <button id="catsNone" class="btn btn--chip">Ingen</button>
+          </div>
         </div>
-        <div class="panel-actions">
-          <button id="catsAll" class="btn small">Alla</button>
-          <button id="catsNone" class="btn small">Ingen</button>
+
+        <div id="cats" class="cats"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel__head">
+          <div class="panel__title">Snabbmått</div>
+          <div id="statsLine" class="panel__meta">–</div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="kpi__label">Träffar</div>
+            <div id="kpiCount" class="kpi__value">0</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__label">Kategorier</div>
+            <div id="kpiCats" class="kpi__value">0</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__label">Länder</div>
+            <div id="kpiCountries" class="kpi__value">0</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__label">Period</div>
+            <div id="kpiRange" class="kpi__value kpi__value--small">–</div>
+          </div>
         </div>
       </div>
-      <div id="cats" class="cats"></div>
-    </div>
+    </aside>
 
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="h">Snabbmått</div>
-          <div class="p">baserat på aktuellt urval</div>
+    <section class="grid">
+
+      <section class="card card--wide">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Kategorifördelning (Pie)</div>
+            <div class="card__sub">andel per kategori</div>
+          </div>
+          <button class="fs" title="Helskärm">⤢</button>
         </div>
-      </div>
-      <div class="kpis">
-        <div class="kpi"><div class="k">Träffar</div><div class="v" id="kpiCount">0</div></div>
-        <div class="kpi"><div class="k">Kategorier</div><div class="v" id="kpiCats">0</div></div>
-        <div class="kpi"><div class="k">Länder</div><div class="v" id="kpiCountries">0</div></div>
-        <div class="kpi"><div class="k">Period</div><div class="v" id="kpiRange">–</div></div>
-      </div>
-    </div>
-  </aside>
+        <div id="pieCats" class="chart"></div>
+      </section>
 
-  <main class="grid">
-    <!-- (dina cards exakt som du har dem nu) -->
-    <!-- ... oförändrat ... -->
-    <!-- Jag lämnar dem som i din nuvarande fil -->
-    <!-- 1 -->
-    <section class="card" data-chart="pieCats">
-      <header class="card-head">
-        <div><div class="card-title">Kategoriandel (Pie)</div><div class="card-sub">andel per kategori</div></div>
-        <button class="fs btn small" title="Helskärm">⤢</button>
-      </header>
-      <div class="chart" id="pieCats"></div>
-    </section>
+      <section class="card card--wide">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Länder (Bar)</div>
+            <div class="card__sub">antal per land</div>
+          </div>
+          <button class="fs" title="Helskärm">⤢</button>
+        </div>
+        <div id="barCountries" class="chart"></div>
+      </section>
 
-    <section class="card" data-chart="barCountries">
-      <header class="card-head">
-        <div><div class="card-title">Länder (Bar)</div><div class="card-sub">antal per land</div></div>
-        <button class="fs btn small" title="Helskärm">⤢</button>
-      </header>
-      <div class="chart" id="barCountries"></div>
-    </section>
+      <section class="card card--wide">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Tidsserie (Line)</div>
+            <div class="card__sub">antal per dag</div>
+          </div>
+          <button class="fs" title="Helskärm">⤢</button>
+        </div>
+        <div id="lineTimeline" class="chart"></div>
+      </section>
 
-    <section class="card" data-chart="lineTimeline">
-      <header class="card-head">
-        <div><div class="card-title">Tidsserie (Line)</div><div class="card-sub">antal per dag</div></div>
-        <button class="fs btn small" title="Helskärm">⤢</button>
-      </header>
-      <div class="chart" id="lineTimeline"></div>
-    </section>
+      <section class="card card--wide">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Karta – densitet (Heat)</div>
+            <div class="card__sub">intensitet = antal</div>
+          </div>
+          <button class="fs" title="Helskärm">⤢</button>
+        </div>
+        <div id="heatCalendar" class="chart"></div>
+      </section>
 
-    <section class="card" data-chart="heatCalendar">
-      <header class="card-head">
-        <div><div class="card-title">Kalender-heatmap</div><div class="card-sub">dagar vs veckor (intensitet = antal)</div></div>
-        <button class="fs btn small" title="Helskärm">⤢</button>
-      </header>
-      <div class="chart" id="heatCalendar"></div>
-    </section>
+      <section class="card card--wide">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Top platser (Bar)</div>
+            <div class="card__sub">place/city (topp 15)</div>
+          </div>
+          <button class="fs" title="Helskärm">⤢</button>
+        </div>
+        <div id="barTopPlaces" class="chart"></div>
+      </section>
 
-    <section class="card" data-chart="barTopPlaces">
-      <header class="card-head">
-        <div><div class="card-title">Top platser (Bar)</div><div class="card-sub">place/city (topp 15)</div></div>
-        <button class="fs btn small" title="Helskärm">⤢</button>
-      </header>
-      <div class="chart" id="barTopPlaces"></div>
-    </section>
+      <section class="card card--wide">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Månad x kategori (Stacked)</div>
+            <div class="card__sub">fördelning per månad</div>
+          </div>
+          <button class="fs" title="Helskärm">⤢</button>
+        </div>
+        <div id="stackMonthCat" class="chart"></div>
+      </section>
 
-    <section class="card" data-chart="stackMonthCat">
-      <header class="card-head">
-        <div><div class="card-title">Månad x kategori (Stacked)</div><div class="card-sub">fördelning per månad</div></div>
-        <button class="fs btn small" title="Helskärm">⤢</button>
-      </header>
-      <div class="chart" id="stackMonthCat"></div>
-    </section>
+      <!-- Sankey finns kvar i HTML om du vill senare, men renderas INTE i JS -->
+      <section class="card card--wide" style="display:none">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Flöde (Sankey)</div>
+            <div class="card__sub">dold</div>
+          </div>
+        </div>
+        <div id="sankeyCountryCat" class="chart"></div>
+      </section>
 
-    <section class="card" data-chart="sankeyCountryCat">
-      <header class="card-head">
-        <div><div class="card-title">Flöde (Sankey)</div><div class="card-sub">land → kategori</div></div>
-        <button class="fs btn small" title="Helskärm">⤢</button>
-      </header>
-      <div class="chart" id="sankeyCountryCat"></div>
-    </section>
+      <section class="card card--wide">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Nätverk (Noder)</div>
+            <div class="card__sub">kategori → land</div>
+          </div>
+          <button class="fs" title="Helskärm">⤢</button>
+        </div>
+        <!-- vi återanvänder ditt befintliga id -->
+        <div id="treemapCatCountry" class="chart"></div>
+      </section>
 
-    <section class="card" data-chart="treemapCatCountry">
-      <header class="card-head">
-        <div><div class="card-title">Treemap</div><div class="card-sub">kategori → land</div></div>
-        <button class="fs btn small" title="Helskärm">⤢</button>
-      </header>
-      <div class="chart" id="treemapCatCountry"></div>
-    </section>
+      <section class="card card--wide">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Karta – spridning</div>
+            <div class="card__sub">punkter (lat/lng)</div>
+          </div>
+          <button class="fs" title="Helskärm">⤢</button>
+        </div>
+        <div id="scatterGeo" class="chart"></div>
+      </section>
 
-    <section class="card" data-chart="scatterGeo">
-      <header class="card-head">
-        <div><div class="card-title">Geo-spridning (Scatter)</div><div class="card-sub">lat/lng</div></div>
-        <button class="fs btn small" title="Helskärm">⤢</button>
-      </header>
-      <div class="chart" id="scatterGeo"></div>
-    </section>
+      <section class="card card--wide">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Karta – densitet (alternativ)</div>
+            <div class="card__sub">heat/density</div>
+          </div>
+          <button class="fs" title="Helskärm">⤢</button>
+        </div>
+        <div id="hist2dGeo" class="chart"></div>
+      </section>
 
-    <section class="card" data-chart="hist2dGeo">
-      <header class="card-head">
-        <div><div class="card-title">Geo-densitet (2D-heat)</div><div class="card-sub">histogram2d lat/lng</div></div>
-        <button class="fs btn small" title="Helskärm">⤢</button>
-      </header>
-      <div class="chart" id="hist2dGeo"></div>
-    </section>
+      <section class="card card--wide">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Kumulativ (Line)</div>
+            <div class="card__sub">ackumulerat antal</div>
+          </div>
+          <button class="fs" title="Helskärm">⤢</button>
+        </div>
+        <div id="cumulative" class="chart"></div>
+      </section>
 
-    <section class="card" data-chart="cumulative">
-      <header class="card-head">
-        <div><div class="card-title">Kumulativ (Line)</div><div class="card-sub">ackumulerat</div></div>
-        <button class="fs btn small" title="Helskärm">⤢</button>
-      </header>
-      <div class="chart" id="cumulative"></div>
     </section>
   </main>
 
-  <!-- Behåll gärna din stora events.js (om den råkar funka), men dashboard.js klarar sig även om den kraschar -->
-  <script src="./events.js"></script>
+  <!-- Din stora EVENTS-array -->
+  <script src="./events.js?v=1"></script>
 
-  <script>
-    // Snabb indikator om events.js faktiskt satte window.EVENTS
-    console.log("EVENTS after events.js:", window.EVENTS ? window.EVENTS.length : "MISSING");
-    if (!window.EVENTS) {
-      document.body.insertAdjacentHTML(
-        "afterbegin",
-        '<div style="margin:12px;padding:12px;border:1px solid #ff8182;background:#ffebe9;border-radius:12px;font-family:system-ui">' +
-        '<b>OBS:</b> events.js satte inte window.EVENTS (fel path eller SyntaxError). Dashboarden kommer försöka ladda från kartan.' +
-        '</div>'
-      );
-    }
-  </script>
-
-  <script src="./dashboard.js"></script>
+  <!-- Dashboardlogik -->
+  <script src="./dashboard.js?v=1"></script>
 </body>
 </html>
