@@ -1,11 +1,10 @@
 (() => {
-  // ========= Plotly guard =========
   if (typeof Plotly === "undefined") {
-    console.error("Plotly saknas");
+    console.error("Plotly saknas (plotly CDN laddades inte).");
     return;
   }
 
-  // ========= EXAKT dina 11 kategorier =========
+  // ========= 1) EXAKT dina 11 kategorier =========
   const CATS = {
     DRONE:   { label:'Drönare / UAV',             emoji:'🛩️',  color:'#b9e3ff', desc:'Incidenter med UAV/drönare.', iconUrl:'' },
     INFRA:   { label:'Infrastruktur / sabotage',  emoji:'⚡',   color:'#ffe08a', desc:'Kritisk infrastruktur, sabotage, störningar.', iconUrl:'' },
@@ -21,17 +20,18 @@
   };
   const CAT_KEYS = Object.keys(CATS);
 
-  // ========= Data =========
+  // ========= 2) DATA =========
   const RAW = Array.isArray(window.EVENTS) ? window.EVENTS : [];
   if (!RAW.length) {
     console.error("window.EVENTS saknas eller är tom. Kontrollera events.js");
   }
 
-  // ========= DOM =========
+  // ========= 3) DOM =========
   const $ = (id) => document.getElementById(id);
 
   const catsHost = $("cats");
   const statsLine = $("statsLine");
+
   const dateFromEl = $("dateFrom");
   const dateToEl = $("dateTo");
   const qEl = $("q");
@@ -46,15 +46,16 @@
   const kpiCountries = $("kpiCountries");
   const kpiRange = $("kpiRange");
 
-  // ========= State =========
+  // ========= 4) STATE =========
   const ACTIVE = {
-    cats: new Set(CAT_KEYS),
+    cats: new Set(CAT_KEYS),      // max 11
     q: "",
     from: "",
-    to: ""
+    to: "",
+    country: null                // landfilter (interaktiv nod)
   };
 
-  // ========= Helpers =========
+  // ========= 5) HELPERS =========
   const pad2 = (n) => String(n).padStart(2, "0");
 
   function safeCat(x) {
@@ -112,14 +113,13 @@
     }
   }
 
-  // ========= Base layout =========
   const BASE = {
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
     font: { family: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif", size: 12 }
   };
 
-  // ========= UI: Categories =========
+  // ========= 6) UI: kategorier =========
   function renderCatsUI() {
     if (!catsHost) return;
     catsHost.innerHTML = "";
@@ -170,25 +170,32 @@
     if (dateFromEl) dateFromEl.value = "";
     if (dateToEl) dateToEl.value = "";
     if (qEl) qEl.value = "";
+
     ACTIVE.from = "";
     ACTIVE.to = "";
     ACTIVE.q = "";
+    ACTIVE.country = null;
     ACTIVE.cats = new Set(CAT_KEYS);
+
     renderCatsUI();
     update();
   });
 
-  // ========= Filter =========
+  // ========= 7) FILTER =========
   function getFiltered() {
     const q = norm(ACTIVE.q);
     const fromDt = parseYMD(ACTIVE.from);
     const toDt = parseYMD(ACTIVE.to);
+    const country = (ACTIVE.country || "").toUpperCase().trim();
 
     const out = [];
     for (const e of RAW) {
       const cat = safeCat(e.cat);
       if (!cat) continue;                 // lås till dina 11
       if (!ACTIVE.cats.has(cat)) continue;
+
+      const ctry = (e.country || "").toUpperCase().trim();
+      if (country && ctry !== country) continue;
 
       const dt = parseYMD(e.date);
       if (fromDt && (!dt || dt < fromDt)) continue;
@@ -207,11 +214,9 @@
     return out;
   }
 
-  // ========= KPI =========
+  // ========= 8) KPI =========
   function setKPIs(list) {
     if (kpiCount) kpiCount.textContent = String(list.length);
-
-    // Viktigt: visa antal valda kategorier (max 11)
     if (kpiCats) kpiCats.textContent = String(ACTIVE.cats.size);
 
     const countries = new Set(list.map(e => (e.country || "").toUpperCase()).filter(Boolean));
@@ -220,10 +225,15 @@
     const dates = list.map(e => e.__dt).filter(Boolean).sort((a,b)=>a-b);
     if (kpiRange) kpiRange.textContent = dates.length ? `${ymdUTC(dates[0])} – ${ymdUTC(dates[dates.length-1])}` : "–";
 
-    if (statsLine) statsLine.textContent = `${list.length} träffar`;
+    if (statsLine) {
+      const parts = [];
+      if (ACTIVE.country) parts.push(`Land: ${ACTIVE.country}`);
+      if (ACTIVE.cats.size === 1) parts.push(`Kategori: ${[...ACTIVE.cats][0]}`);
+      statsLine.textContent = parts.length ? parts.join(" • ") : `${list.length} träffar`;
+    }
   }
 
-  // ========= Charts (10 st) =========
+  // ========= 9) CHARTS =========
 
   function drawPieCats(list) {
     drawSafe("pieCats", () => {
@@ -290,7 +300,7 @@
     });
   }
 
-  // ---- Mapbox density med fallback till histogram2d ----
+  // ---- Density map med fallback ----
   function drawDensityMapOrHist(list, targetId, radius) {
     const lats = [];
     const lons = [];
@@ -302,7 +312,6 @@
       lons.push(lon);
     }
 
-    // försök karta
     drawSafe(targetId, () => {
       Plotly.react(targetId, [{
         type: "densitymapbox",
@@ -314,15 +323,10 @@
       }], {
         ...BASE,
         margin: { l: 10, r: 10, t: 10, b: 10 },
-        mapbox: {
-          style: "open-street-map",
-          center: { lat: 20, lon: 0 },
-          zoom: 1
-        }
+        mapbox: { style: "open-street-map", center: { lat: 20, lon: 0 }, zoom: 1 }
       }, { responsive: true });
     });
 
-    // fallback: vanlig 2D-hist om densitymapbox blockas
     const el = $(targetId);
     const ok = el && el.data && el.data[0] && el.data[0].type === "densitymapbox";
     if (!ok) {
@@ -341,7 +345,7 @@
     }
   }
 
-  // ---- Mapbox scatter med fallback till scattergeo ----
+  // ---- Scatter map med fallback ----
   function drawScatterMapOrGeo(list) {
     const lats = [];
     const lons = [];
@@ -359,7 +363,6 @@
       colors.push(meta.color);
     }
 
-    // försök karta
     drawSafe("scatterGeo", () => {
       Plotly.react("scatterGeo", [{
         type: "scattermapbox",
@@ -372,15 +375,10 @@
       }], {
         ...BASE,
         margin: { l: 10, r: 10, t: 10, b: 10 },
-        mapbox: {
-          style: "open-street-map",
-          center: { lat: 20, lon: 0 },
-          zoom: 1
-        }
+        mapbox: { style: "open-street-map", center: { lat: 20, lon: 0 }, zoom: 1 }
       }, { responsive: true });
     });
 
-    // fallback
     const el = $("scatterGeo");
     const ok = el && el.data && el.data[0] && el.data[0].type === "scattermapbox";
     if (!ok) {
@@ -455,14 +453,19 @@
     });
   }
 
-  // --- Nodgraf i rutan treemapCatCountry (kategori-noder + land-noder) ---
+  // ========= NODGRAF (interaktiv) =========
+  // Klick på kategori: filtera kategori (toggle / shift för multi)
+  // Klick på land: sätt/ta bort landfilter
+  // Dubbelklick: reset (land + alla kategorier)
   function drawCatNodeGraph(list) {
     drawSafe("treemapCatCountry", () => {
       const MAX_COUNTRIES_PER_CAT = 18;
 
+      // totals
       const catTotals = countBy(list, (e) => e.cat);
 
-      const catCountry = new Map(); // "CAT|SE" -> count
+      // cat|country
+      const catCountry = new Map();
       for (const e of list) {
         const ctry = (e.country || "").toUpperCase().trim();
         if (!ctry) continue;
@@ -481,9 +484,11 @@
         perCatCountries.set(cat, topN(m, MAX_COUNTRIES_PER_CAT));
       }
 
-      const nodes = [];
-      const links = [];
+      // layout
+      const nodes = [];      // for plotting
+      const meta = [];       // parallel meta for click handling
 
+      const links = [];
       const R = 1.65;
       const step = (2 * Math.PI) / CAT_KEYS.length;
 
@@ -497,13 +502,13 @@
         const cy = R * Math.sin(a);
 
         nodes.push({
-          kind: "cat",
-          label: `${CATS[cat].emoji} ${cat}`,
           x: cx, y: cy,
           size: Math.max(20, Math.min(70, 12 + Math.sqrt(total) * 2.4)),
           color: CATS[cat].color,
-          value: total
+          text: `${CATS[cat].emoji} ${cat}`,
+          hover: `${CATS[cat].emoji} ${CATS[cat].label}<br>${cat}<br>Antal: ${total}`
         });
+        meta.push({ kind: "cat", cat, country: null });
 
         const countries = perCatCountries.get(cat) || [];
         const r2 = 0.62;
@@ -516,14 +521,13 @@
           const y2 = cy + r2 * Math.sin(a2);
 
           nodes.push({
-            kind: "country",
-            label: `${ctry} (${cnt})`,
-            cat,
             x: x2, y: y2,
             size: Math.max(8, Math.min(26, 6 + Math.sqrt(cnt) * 1.8)),
             color: CATS[cat].color,
-            value: cnt
+            text: "", // visa inte text för land (för stökigt)
+            hover: `${ctry} (${cnt})<br>Kategori: ${cat}`
           });
+          meta.push({ kind: "country", cat, country: ctry });
 
           links.push({ x0: cx, y0: cy, x1: x2, y1: y2 });
         }
@@ -549,22 +553,19 @@
       const nodeTrace = {
         type: "scattergl",
         mode: "markers+text",
-        x: nodes.map((n) => n.x),
-        y: nodes.map((n) => n.y),
-        text: nodes.map((n) => (n.kind === "cat" ? n.label : "")),
+        x: nodes.map(n => n.x),
+        y: nodes.map(n => n.y),
+        text: nodes.map(n => n.text),
         textposition: "bottom center",
-        hovertext: nodes.map((n) =>
-          n.kind === "cat"
-            ? `${n.label}<br>Antal: ${n.value}`
-            : `${n.label}<br>Kategori: ${n.cat}`
-        ),
+        hovertext: nodes.map(n => n.hover),
         hoverinfo: "text",
         marker: {
-          size: nodes.map((n) => n.size),
-          color: nodes.map((n) => n.color),
+          size: nodes.map(n => n.size),
+          color: nodes.map(n => n.color),
           opacity: 0.9,
           line: { width: 1 }
-        }
+        },
+        customdata: meta // <— för klicklogik
       };
 
       Plotly.react("treemapCatCountry", [edges, nodeTrace], {
@@ -574,6 +575,60 @@
         yaxis: { visible: false },
         showlegend: false
       }, { responsive: true });
+
+      // koppla interaktion (efter react)
+      const gd = $("treemapCatCountry");
+      if (!gd) return;
+
+      // undvik dubbla handlers om update körs ofta
+      if (!gd.__nodeHandlersBound) {
+        gd.__nodeHandlersBound = true;
+
+        gd.on("plotly_click", (evt) => {
+          const p = evt?.points?.[0];
+          const cd = p?.customdata;
+          if (!cd) return;
+
+          // Shift-klick: toggle i multi-select
+          const isShift = !!evt.event?.shiftKey;
+
+          if (cd.kind === "country") {
+            // toggle land
+            ACTIVE.country = (ACTIVE.country === cd.country) ? null : cd.country;
+            update();
+            return;
+          }
+
+          if (cd.kind === "cat") {
+            if (isShift) {
+              // toggle cat i multi
+              if (ACTIVE.cats.has(cd.cat)) ACTIVE.cats.delete(cd.cat);
+              else ACTIVE.cats.add(cd.cat);
+              renderCatsUI();
+              update();
+              return;
+            }
+
+            // normal klick: solo-toggle
+            if (ACTIVE.cats.size === 1 && ACTIVE.cats.has(cd.cat)) {
+              // klick igen => återställ alla
+              ACTIVE.cats = new Set(CAT_KEYS);
+            } else {
+              ACTIVE.cats = new Set([cd.cat]);
+            }
+            renderCatsUI();
+            update();
+            return;
+          }
+        });
+
+        gd.on("plotly_doubleclick", () => {
+          ACTIVE.country = null;
+          ACTIVE.cats = new Set(CAT_KEYS);
+          renderCatsUI();
+          update();
+        });
+      }
     });
   }
 
@@ -601,7 +656,7 @@
     });
   }
 
-  // ========= Fullscreen =========
+  // ========= 10) FULLSCREEN / RESIZE =========
   function resizeAll() {
     const ids = [
       "pieCats","barCountries","lineTimeline","heatCalendar",
@@ -628,12 +683,12 @@
     window.addEventListener("resize", () => setTimeout(resizeAll, 80));
   }
 
-  // ========= Main update =========
+  // ========= 11) UPDATE =========
   function update() {
     const list = getFiltered();
     setKPIs(list);
 
-    // 10 visualiseringar:
+    // 10 visualiseringar
     drawPieCats(list);
     drawBarCountries(list);
     drawLineTimeline(list);
@@ -652,7 +707,7 @@
     setTimeout(resizeAll, 80);
   }
 
-  // ========= Init =========
+  // ========= 12) INIT =========
   renderCatsUI();
   setupFullscreen();
 
