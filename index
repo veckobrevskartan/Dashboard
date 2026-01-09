@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' https: data: blob:;
+                 style-src 'self' 'unsafe-inline' https:;
+                 script-src 'self' 'unsafe-inline' https:;
+                 img-src * data: blob:;
+                 connect-src *;">
+  <title>Veckobrev – Dashboard (v1)</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="title">Dashboard</div>
+      <div class="subtitle">Visualiseringar • Filter • Helskärm per modul</div>
+    </div>
+
+    <div class="filters">
+      <div class="field">
+        <label for="cats">Kategorier</label>
+        <select id="cats" multiple></select>
+      </div>
+
+      <div class="field">
+        <label for="country">Land</label>
+        <select id="country">
+          <option value="">Alla</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="from">Från</label>
+        <input id="from" type="date" />
+      </div>
+
+      <div class="field">
+        <label for="to">Till</label>
+        <input id="to" type="date" />
+      </div>
+
+      <div class="field search">
+        <label for="q">Sök</label>
+        <input id="q" type="text" placeholder='title, place, summary, source, url…' />
+      </div>
+
+      <div class="actions">
+        <button id="apply" class="btn primary">Uppdatera</button>
+        <button id="reset" class="btn">Återställ</button>
+      </div>
+    </div>
+
+    <div class="meta">
+      <span id="count">0 händelser</span>
+      <span class="dot">•</span>
+      <span id="range">—</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <!-- 1 -->
+    <section class="card" data-module>
+      <header class="cardhead">
+        <h2>Kategorifördelning (Pie)</h2>
+        <button class="btn fs" data-fs>Helskärm</button>
+      </header>
+      <div id="chart_cat_pie" class="chart"></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="card" data-module>
+      <header class="cardhead">
+        <h2>Länder (Donut)</h2>
+        <button class="btn fs" data-fs>Helskärm</button>
+      </header>
+      <div id="chart_country_donut" class="chart"></div>
+    </section>
+
+    <!-- 3 -->
+    <section class="card wide" data-module>
+      <header class="cardhead">
+        <h2>Händelser över tid (Line)</h2>
+        <button class="btn fs" data-fs>Helskärm</button>
+      </header>
+      <div id="chart_time_line" class="chart"></div>
+    </section>
+
+    <!-- 4 -->
+    <section class="card" data-module>
+      <header class="cardhead">
+        <h2>Topp platser (Bar)</h2>
+        <button class="btn fs" data-fs>Helskärm</button>
+      </header>
+      <div id="chart_place_bar" class="chart"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="card" data-module>
+      <header class="cardhead">
+        <h2>Topptitlar (Bar)</h2>
+        <button class="btn fs" data-fs>Helskärm</button>
+      </header>
+      <div id="chart_title_bar" class="chart"></div>
+    </section>
+
+    <!-- 6 -->
+    <section class="card wide" data-module>
+      <header class="cardhead">
+        <h2>Heatmap: Kategori × Veckodag</h2>
+        <button class="btn fs" data-fs>Helskärm</button>
+      </header>
+      <div id="chart_cat_weekday_heat" class="chart"></div>
+    </section>
+
+    <!-- 7 -->
+    <section class="card wide" data-module>
+      <header class="cardhead">
+        <h2>Heatmap: Kalender (Datumintensitet)</h2>
+        <button class="btn fs" data-fs>Helskärm</button>
+      </header>
+      <div id="chart_calendar_heat" class="chart"></div>
+    </section>
+
+    <!-- 8 -->
+    <section class="card" data-module>
+      <header class="cardhead">
+        <h2>Treemap: Kategori → Land</h2>
+        <button class="btn fs" data-fs>Helskärm</button>
+      </header>
+      <div id="chart_treemap" class="chart"></div>
+    </section>
+
+    <!-- 9 -->
+    <section class="card" data-module>
+      <header class="cardhead">
+        <h2>Sankey: Flöde Kategori → Land</h2>
+        <button class="btn fs" data-fs>Helskärm</button>
+      </header>
+      <div id="chart_sankey" class="chart"></div>
+    </section>
+
+    <!-- 10 -->
+    <section class="card wide" data-module>
+      <header class="cardhead">
+        <h2>Geo-bubbla: Positioner (lat/lng)</h2>
+        <button class="btn fs" data-fs>Helskärm</button>
+      </header>
+      <div id="chart_geo_bubble" class="chart"></div>
+    </section>
+
+    <!-- 11 (extra) -->
+    <section class="card" data-module>
+      <header class="cardhead">
+        <h2>Histogram: Månadsfördelning</h2>
+        <button class="btn fs" data-fs>Helskärm</button>
+      </header>
+      <div id="chart_month_hist" class="chart"></div>
+    </section>
+
+    <!-- 12 (extra) -->
+    <section class="card" data-module>
+      <header class="cardhead">
+        <h2>Tabell (klickbar)</h2>
+        <button class="btn fs" data-fs>Helskärm</button>
+      </header>
+      <div id="chart_table" class="chart table"></div>
+    </section>
+  </main>
+
+  <!-- Plotly -->
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+
+  <!-- DATA: välj ett av alternativen i dashboard.js (import från karta eller klistra in) -->
+  <script src="events.js"></script>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
