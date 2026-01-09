@@ -2,180 +2,220 @@
 <html lang="sv">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' https: data: blob:;
-                 style-src 'self' 'unsafe-inline' https:;
-                 script-src 'self' 'unsafe-inline' https:;
-                 img-src * data: blob:;
-                 connect-src *;">
-  <title>Veckobrev – Dashboard (v1)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard – Veckobrevskartan</title>
   <link rel="stylesheet" href="dashboard.css" />
+
+  <!-- Plotly (för pie/heatmap/sankey/treemap m.m.) -->
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
       <div class="title">Dashboard</div>
-      <div class="subtitle">Visualiseringar • Filter • Helskärm per modul</div>
+      <div class="sub">Veckobrevskartan – filtrera och visualisera händelser</div>
     </div>
 
     <div class="filters">
       <div class="field">
-        <label for="cats">Kategorier</label>
-        <select id="cats" multiple></select>
+        <label>Datum från</label>
+        <input id="dateFrom" type="date">
       </div>
-
       <div class="field">
-        <label for="country">Land</label>
-        <select id="country">
-          <option value="">Alla</option>
-        </select>
+        <label>Datum till</label>
+        <input id="dateTo" type="date">
       </div>
 
-      <div class="field">
-        <label for="from">Från</label>
-        <input id="from" type="date" />
+      <div class="field grow">
+        <label>Sök</label>
+        <input id="q" type="text" placeholder='Sök i title/place/summary/source…'>
       </div>
 
-      <div class="field">
-        <label for="to">Till</label>
-        <input id="to" type="date" />
-      </div>
-
-      <div class="field search">
-        <label for="q">Sök</label>
-        <input id="q" type="text" placeholder='title, place, summary, source, url…' />
-      </div>
-
-      <div class="actions">
-        <button id="apply" class="btn primary">Uppdatera</button>
-        <button id="reset" class="btn">Återställ</button>
-      </div>
-    </div>
-
-    <div class="meta">
-      <span id="count">0 händelser</span>
-      <span class="dot">•</span>
-      <span id="range">—</span>
+      <button id="btnReset" class="btn">Återställ</button>
+      <button id="btnApply" class="btn primary">Uppdatera</button>
     </div>
   </header>
 
+  <aside class="sidebar">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="h">Kategorier</div>
+          <div class="p" id="statsLine">–</div>
+        </div>
+        <div class="panel-actions">
+          <button id="catsAll" class="btn small">Alla</button>
+          <button id="catsNone" class="btn small">Ingen</button>
+        </div>
+      </div>
+      <div id="cats" class="cats"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="h">Snabbmått</div>
+          <div class="p">baserat på aktuellt urval</div>
+        </div>
+      </div>
+      <div class="kpis">
+        <div class="kpi">
+          <div class="k">Träffar</div>
+          <div class="v" id="kpiCount">0</div>
+        </div>
+        <div class="kpi">
+          <div class="k">Kategorier</div>
+          <div class="v" id="kpiCats">0</div>
+        </div>
+        <div class="kpi">
+          <div class="k">Länder</div>
+          <div class="v" id="kpiCountries">0</div>
+        </div>
+        <div class="kpi">
+          <div class="k">Period</div>
+          <div class="v" id="kpiRange">–</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
   <main class="grid">
     <!-- 1 -->
-    <section class="card" data-module>
-      <header class="cardhead">
-        <h2>Kategorifördelning (Pie)</h2>
-        <button class="btn fs" data-fs>Helskärm</button>
+    <section class="card" data-chart="pieCats">
+      <header class="card-head">
+        <div>
+          <div class="card-title">Kategoriandel (Pie)</div>
+          <div class="card-sub">andel per kategori</div>
+        </div>
+        <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
-      <div id="chart_cat_pie" class="chart"></div>
+      <div class="chart" id="pieCats"></div>
     </section>
 
     <!-- 2 -->
-    <section class="card" data-module>
-      <header class="cardhead">
-        <h2>Länder (Donut)</h2>
-        <button class="btn fs" data-fs>Helskärm</button>
+    <section class="card" data-chart="barCountries">
+      <header class="card-head">
+        <div>
+          <div class="card-title">Länder (Bar)</div>
+          <div class="card-sub">antal per land</div>
+        </div>
+        <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
-      <div id="chart_country_donut" class="chart"></div>
+      <div class="chart" id="barCountries"></div>
     </section>
 
     <!-- 3 -->
-    <section class="card wide" data-module>
-      <header class="cardhead">
-        <h2>Händelser över tid (Line)</h2>
-        <button class="btn fs" data-fs>Helskärm</button>
+    <section class="card" data-chart="lineTimeline">
+      <header class="card-head">
+        <div>
+          <div class="card-title">Tidsserie (Line)</div>
+          <div class="card-sub">antal per dag</div>
+        </div>
+        <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
-      <div id="chart_time_line" class="chart"></div>
+      <div class="chart" id="lineTimeline"></div>
     </section>
 
     <!-- 4 -->
-    <section class="card" data-module>
-      <header class="cardhead">
-        <h2>Topp platser (Bar)</h2>
-        <button class="btn fs" data-fs>Helskärm</button>
+    <section class="card" data-chart="heatCalendar">
+      <header class="card-head">
+        <div>
+          <div class="card-title">Kalender-heatmap</div>
+          <div class="card-sub">dagar vs veckor (intensitet = antal)</div>
+        </div>
+        <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
-      <div id="chart_place_bar" class="chart"></div>
+      <div class="chart" id="heatCalendar"></div>
     </section>
 
     <!-- 5 -->
-    <section class="card" data-module>
-      <header class="cardhead">
-        <h2>Topptitlar (Bar)</h2>
-        <button class="btn fs" data-fs>Helskärm</button>
+    <section class="card" data-chart="barTopPlaces">
+      <header class="card-head">
+        <div>
+          <div class="card-title">Top platser (Bar)</div>
+          <div class="card-sub">place/city (topp 15)</div>
+        </div>
+        <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
-      <div id="chart_title_bar" class="chart"></div>
+      <div class="chart" id="barTopPlaces"></div>
     </section>
 
     <!-- 6 -->
-    <section class="card wide" data-module>
-      <header class="cardhead">
-        <h2>Heatmap: Kategori × Veckodag</h2>
-        <button class="btn fs" data-fs>Helskärm</button>
+    <section class="card" data-chart="stackMonthCat">
+      <header class="card-head">
+        <div>
+          <div class="card-title">Månad x kategori (Stacked)</div>
+          <div class="card-sub">fördelning per månad</div>
+        </div>
+        <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
-      <div id="chart_cat_weekday_heat" class="chart"></div>
+      <div class="chart" id="stackMonthCat"></div>
     </section>
 
     <!-- 7 -->
-    <section class="card wide" data-module>
-      <header class="cardhead">
-        <h2>Heatmap: Kalender (Datumintensitet)</h2>
-        <button class="btn fs" data-fs>Helskärm</button>
+    <section class="card" data-chart="sankeyCountryCat">
+      <header class="card-head">
+        <div>
+          <div class="card-title">Flöde (Sankey)</div>
+          <div class="card-sub">land → kategori</div>
+        </div>
+        <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
-      <div id="chart_calendar_heat" class="chart"></div>
+      <div class="chart" id="sankeyCountryCat"></div>
     </section>
 
     <!-- 8 -->
-    <section class="card" data-module>
-      <header class="cardhead">
-        <h2>Treemap: Kategori → Land</h2>
-        <button class="btn fs" data-fs>Helskärm</button>
+    <section class="card" data-chart="treemapCatCountry">
+      <header class="card-head">
+        <div>
+          <div class="card-title">Treemap</div>
+          <div class="card-sub">kategori → land</div>
+        </div>
+        <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
-      <div id="chart_treemap" class="chart"></div>
+      <div class="chart" id="treemapCatCountry"></div>
     </section>
 
     <!-- 9 -->
-    <section class="card" data-module>
-      <header class="cardhead">
-        <h2>Sankey: Flöde Kategori → Land</h2>
-        <button class="btn fs" data-fs>Helskärm</button>
+    <section class="card" data-chart="scatterGeo">
+      <header class="card-head">
+        <div>
+          <div class="card-title">Geo-spridning (Scatter)</div>
+          <div class="card-sub">lat/lng (utan karttoken)</div>
+        </div>
+        <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
-      <div id="chart_sankey" class="chart"></div>
+      <div class="chart" id="scatterGeo"></div>
     </section>
 
     <!-- 10 -->
-    <section class="card wide" data-module>
-      <header class="cardhead">
-        <h2>Geo-bubbla: Positioner (lat/lng)</h2>
-        <button class="btn fs" data-fs>Helskärm</button>
+    <section class="card" data-chart="hist2dGeo">
+      <header class="card-head">
+        <div>
+          <div class="card-title">Geo-densitet (2D-heat)</div>
+          <div class="card-sub">histogram2d lat/lng</div>
+        </div>
+        <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
-      <div id="chart_geo_bubble" class="chart"></div>
+      <div class="chart" id="hist2dGeo"></div>
     </section>
 
     <!-- 11 (extra) -->
-    <section class="card" data-module>
-      <header class="cardhead">
-        <h2>Histogram: Månadsfördelning</h2>
-        <button class="btn fs" data-fs>Helskärm</button>
+    <section class="card" data-chart="cumulative">
+      <header class="card-head">
+        <div>
+          <div class="card-title">Kumulativ (Line)</div>
+          <div class="card-sub">ackumulerat antal över tid</div>
+        </div>
+        <button class="fs btn small" title="Helskärm">⤢</button>
       </header>
-      <div id="chart_month_hist" class="chart"></div>
+      <div class="chart" id="cumulative"></div>
     </section>
 
-    <!-- 12 (extra) -->
-    <section class="card" data-module>
-      <header class="cardhead">
-        <h2>Tabell (klickbar)</h2>
-        <button class="btn fs" data-fs>Helskärm</button>
-      </header>
-      <div id="chart_table" class="chart table"></div>
-    </section>
   </main>
 
-  <!-- Plotly -->
-  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
-
-  <!-- DATA: välj ett av alternativen i dashboard.js (import från karta eller klistra in) -->
+  <!-- Viktigt: events.js måste sätta window.EVENTS -->
   <script src="events.js"></script>
-
   <script src="dashboard.js"></script>
 </body>
 </html>
