@@ -2226,7 +2226,7 @@ const EVENTS = [
 
 {country:'AR',cat:'POLICY',title:'Milei reformerar Argentinas underrättelsesystem via nödförordnande',place:'Buenos Aires (AR)',date:'2026-01-02',lat:-34.6037,lng:-58.3816,summary:'President Javier Milei ger underrättelsetjänsten SIDE utökade befogenheter genom ett nödförordnande, vilket väcker stark politisk kritik.',url:'https://www.linkedin.com/feed/update/urn:li:activity:7413574681221328896'},
 
-{country:'US',cat:'POLICY',title:'ICE outsourcar omfattande skip tracing till Constellis och OMNIPLEX',place:'USA – ICE / Enforcement and Removal Operations (US)',date:'2026-01-03',lat:38.9072,lng:-77.0369,summary:'ICE har anlitat Constellis/OMNIPLEX för omfattande skip tracing med upp till 1,5 miljoner individer som målpopulation.',url:'https://www.linkedin.com/feed/update/urn:li:activity:7413579447490183169'},
+{country:'US',cat:'POLICY',title:'ICE outsourcar omfattande skip tracing till Constellis och OMNIPLEX',place:'USA – ICE / Enforcement and Removal Operations (US)',date:'2026-01-03',lat:38.9072,lng:-77.0369,summary:'ICE har anlitat Constellis/OMNIPLEX för omfattande skip tracing med upp till 1,5 miljoner individer som målpopulation.',url:'https://www.linkedin.com/feed/update/urn:li:activity:7413579447490183169'}
 ];
 
 // 2) Exponera för dashboarden:
