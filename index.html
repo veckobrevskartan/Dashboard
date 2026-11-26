@@ -166,11 +166,20 @@ footer{padding:18px 0 32px;color:#899aa5;border-top:1px solid var(--line);font-s
     }
     filter.onchange=()=>{apply();if(filter.value==="all"){Array.from(root.children).forEach(card=>card.open=false);}else{const selected=Array.from(root.children).find(card=>card.dataset.id===filter.value);if(selected)selected.open=true;}};search.oninput=apply;apply();
   }
-  window.addEventListener("message",event=>{
-    if(event.origin!==PARENT_ORIGIN||event.source!==window.parent)return;
-    if(event.data&&event.data.type==="SO_TRENDS_DATA")render(event.data.payload);
-  });
-  if(window.parent!==window)window.parent.postMessage({type:"SO_TRENDS_READY"},PARENT_ORIGIN);
+  let embeddedInGhost=false;
+  try{embeddedInGhost=window.parent!==window&&new URL(document.referrer).origin===PARENT_ORIGIN;}catch(e){}
+  if(embeddedInGhost){
+    standalone.hidden=true;
+    window.addEventListener("message",function(event){
+      if(event.origin!==PARENT_ORIGIN||event.source!==window.parent)return;
+      const message=event.data;
+      if(message&&message.type==="SO_TRENDS_DATA")render(message.payload);
+    });
+    window.parent.postMessage({type:"SO_TRENDS_READY"},PARENT_ORIGIN);
+  }else{
+    standalone.hidden=false;
+    if(window.parent===window)window.location.replace("https://so-insights.ghost.io/bevakningsomraden/");
+  }
 })();
 </script>
 </body>
