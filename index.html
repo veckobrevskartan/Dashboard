@@ -121,8 +121,8 @@ footer{padding:18px 0 32px;color:#899aa5;border-top:1px solid var(--line);font-s
     headTop.append(node("div","Bevakningsområde","area-label"),node("span",events.length+" händelser","event-pill"));
     head.append(headTop,node("h2",area.title),node("p",area.lead,"lead"));
     const body=document.createElement("div");body.className="area-body";
-    body.append(node("h3","Förändring under perioden","block-title"),node("p",area.change,"analysis"));
-    body.append(node("h3","Analytisk bedömning","block-title"),node("p",area.assessment,"analysis"));
+    body.append(node("h3","Analys under perioden","block-title"),node("p",area.change,"analysis"));
+    if(area.assessment)body.append(node("h3","Analytisk bedömning","block-title"),node("p",area.assessment,"analysis"));
     if(Array.isArray(area.assessmentSources)&&area.assessmentSources.length){const links=document.createElement("div");links.className="sources";area.assessmentSources.forEach(s=>{const a=safeSource(s);if(a)links.append(a);});if(links.childElementCount)body.append(links);}
     if(area.caveat)body.append(node("p",area.caveat,"caveat"));
     body.append(node("h3","Händelser och uppgifter","block-title"));
@@ -136,7 +136,7 @@ footer{padding:18px 0 32px;color:#899aa5;border-top:1px solid var(--line);font-s
       if(links.childElementCount)item.append(links);
       eventRoot.append(item);
     });
-    body.append(eventRoot);card.append(head,body);card.addEventListener("toggle",()=>requestAnimationFrame(fitHeight));return card;
+    body.append(eventRoot);card.append(head,body);card.addEventListener("toggle",()=>{card.style.gridColumn=card.open?"1 / -1":"";card.style.width=card.open?"100%":"";requestAnimationFrame(fitHeight);});return card;
   }
   function fitHeight(){
     if(window.parent!==window)window.parent.postMessage({type:"SO_TRENDS_HEIGHT",height:Math.ceil(document.body.scrollHeight)},PARENT_ORIGIN);
