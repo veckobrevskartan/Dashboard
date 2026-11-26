@@ -65,7 +65,7 @@ footer{padding:18px 0 32px;color:#899aa5;border-top:1px solid var(--line);font-s
       <div class="pills"><span class="pill" id="period"></span><span class="pill">Kvalitativ uppföljning</span></div>
       <div class="stats">
         <div class="stat"><strong id="area-count">0</strong><span>bevakningsområden</span></div>
-        <div class="stat"><strong id="event-count">0</strong><span>utvalda händelser</span></div>
+        <div class="stat"><strong id="event-count">0</strong><span>unika händelser</span></div>
         <div class="stat"><strong id="updated"></strong><span>senast uppdaterad</span></div>
       </div>
     </header>
@@ -75,7 +75,7 @@ footer{padding:18px 0 32px;color:#899aa5;border-top:1px solid var(--line);font-s
       <label for="search">Sök</label>
       <input id="search" type="search" placeholder="Sök i områden, händelser och platser">
     </section>
-    <p class="note">Välj ett område för att öppna analysen och händelserna. Tidslinjen visar händelser som inträffat inom perioden; senare publiceringsdatum anges där det behövs. Enskilda händelser innebär inte automatiskt att de har samma aktör eller orsak.</p>
+    <p class="note">Välj ett område för att öppna analysen och händelserna. Tidslinjen visar händelser inom perioden; senare publiceringsdatum anges där det behövs. Samma händelse kan beröra flera bevakningsområden, men räknas en gång. Enskilda händelser innebär inte automatiskt att de har samma aktör eller orsak.</p>
     <section id="areas" class="grid" aria-live="polite"></section>
     <footer>Analysperiod och publiceringsdatum anges skilt där de skiljer sig. Bedömningar är analytiska sammanvägningar av de länkade uppgifterna.</footer>
   </div>
@@ -113,7 +113,7 @@ footer{padding:18px 0 32px;color:#899aa5;border-top:1px solid var(--line);font-s
     const card=document.createElement("details");
     card.className="area";card.dataset.id=area.id;
     const events=Array.isArray(area.events)?area.events:[];
-    card.dataset.events=String(events.length);
+    card.dataset.eventKeys=JSON.stringify(events.map(ev=>ev.eventId||((Array.isArray(ev.sources)?ev.sources:[]).map(s=>s.url).sort().join("|"))||[ev.date,ev.location,ev.title].join("|")));
     card.dataset.search=[area.title,area.lead,area.change,area.assessment,area.caveat,
       ...events.flatMap(e=>[e.date,e.location,e.title,e.summary])].join(" ").toLocaleLowerCase("sv");
     const head=document.createElement("summary");head.className="area-head";
@@ -122,7 +122,7 @@ footer{padding:18px 0 32px;color:#899aa5;border-top:1px solid var(--line);font-s
     head.append(headTop,node("h2",area.title),node("p",area.lead,"lead"));
     const body=document.createElement("div");body.className="area-body";
     body.append(node("h3","Förändring under perioden","block-title"),node("p",area.change,"analysis"));
-    body.append(node("h3","Analytisk bedömning","block-title"),node("p",area.assessment,"analysis"));
+    body.append(node("h3","Analytisk bedömning","block-title"),node("p",area.assessment,"analysis"));\n    if(Array.isArray(area.assessmentSources)&&area.assessmentSources.length){const links=document.createElement("div");links.className="sources";area.assessmentSources.forEach(s=>{const a=safeSource(s);if(a)links.append(a);});if(links.childElementCount)body.append(links);}
     if(area.caveat)body.append(node("p",area.caveat,"caveat"));
     body.append(node("h3","Händelser och uppgifter","block-title"));
     const eventRoot=document.createElement("div");eventRoot.className="events";
@@ -153,14 +153,14 @@ footer{padding:18px 0 32px;color:#899aa5;border-top:1px solid var(--line);font-s
       root.append(renderArea(area));
     });
     function apply(){
-      let visible=0,events=0;
+      let visible=0;const eventKeys=new Set();
       Array.from(root.children).forEach(card=>{
         const show=(filter.value==="all"||card.dataset.id===filter.value)&&
           (!search.value.trim()||card.dataset.search.includes(search.value.trim().toLocaleLowerCase("sv")));
-        card.hidden=!show;if(show){visible++;events+=Number(card.dataset.events||0);}
+        card.hidden=!show;if(show){visible++;try{JSON.parse(card.dataset.eventKeys||"[]").forEach(key=>eventKeys.add(key));}catch(e){}}
       });
       document.getElementById("area-count").textContent=String(visible);
-      document.getElementById("event-count").textContent=String(events);
+      document.getElementById("event-count").textContent=String(eventKeys.size);
       requestAnimationFrame(fitHeight);
     }
     filter.onchange=()=>{apply();if(filter.value==="all"){Array.from(root.children).forEach(card=>card.open=false);}else{const selected=Array.from(root.children).find(card=>card.dataset.id===filter.value);if(selected)selected.open=true;}};search.oninput=apply;apply();
