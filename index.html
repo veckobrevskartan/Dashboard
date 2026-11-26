@@ -122,14 +122,15 @@ footer{padding:18px 0 32px;color:#899aa5;border-top:1px solid var(--line);font-s
     head.append(headTop,node("h2",area.title),node("p",area.lead,"lead"));
     const body=document.createElement("div");body.className="area-body";
     body.append(node("h3","Förändring under perioden","block-title"),node("p",area.change,"analysis"));
-    body.append(node("h3","Analytisk bedömning","block-title"),node("p",area.assessment,"analysis"));\n    if(Array.isArray(area.assessmentSources)&&area.assessmentSources.length){const links=document.createElement("div");links.className="sources";area.assessmentSources.forEach(s=>{const a=safeSource(s);if(a)links.append(a);});if(links.childElementCount)body.append(links);}
+    body.append(node("h3","Analytisk bedömning","block-title"),node("p",area.assessment,"analysis"));
+    if(Array.isArray(area.assessmentSources)&&area.assessmentSources.length){const links=document.createElement("div");links.className="sources";area.assessmentSources.forEach(s=>{const a=safeSource(s);if(a)links.append(a);});if(links.childElementCount)body.append(links);}
     if(area.caveat)body.append(node("p",area.caveat,"caveat"));
     body.append(node("h3","Händelser och uppgifter","block-title"));
     const eventRoot=document.createElement("div");eventRoot.className="events";
     events.forEach(ev=>{
       const item=document.createElement("article");item.className="event";
       item.append(node("div",[ev.date,ev.location].filter(Boolean).join(" · "),"event-meta"));
-      item.append(node("h3",ev.title),node("p",ev.summary));
+      if(ev.title)item.append(node("h3",ev.title));item.append(node("p",ev.summary));
       const links=document.createElement("div");links.className="sources";
       (Array.isArray(ev.sources)?ev.sources:[]).forEach(s=>{const a=safeSource(s);if(a)links.append(a);});
       if(links.childElementCount)item.append(links);
