@@ -140,7 +140,7 @@ footer{padding:18px 0 32px;color:#899aa5;border-top:1px solid var(--line);font-s
     body.append(eventRoot);card.append(head,body);card.addEventListener("toggle",()=>requestAnimationFrame(fitHeight));return card;
   }
   function fitHeight(){
-    if(window.parent!==window)window.parent.postMessage({type:"SO_TRENDS_HEIGHT",height:Math.ceil(document.documentElement.scrollHeight)},PARENT_ORIGIN);
+    if(window.parent!==window)window.parent.postMessage({type:"SO_TRENDS_HEIGHT",height:Math.ceil(document.body.scrollHeight)},PARENT_ORIGIN);
   }
   function render(data){
     if(!data||!Array.isArray(data.areas))return;
